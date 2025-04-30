@@ -4,6 +4,7 @@
   "description": "Projeto Bolt com Netlify Functions e Supabase",
   "main": "index.js",
   "scripts": {
+    "build": react-script build"
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
