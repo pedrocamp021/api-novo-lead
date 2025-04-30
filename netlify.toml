@@ -1,17 +1,13 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
   functions = "functions"
+
+[dev]
+  targetPort = 0
+  port = 8888
+  autoLaunch = false
 
 [[redirects]]
   from = "/api/novo-lead"
   to = "/.netlify/functions/novo-lead"
   status = 200
   force = true
-
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["@supabase/supabase-js"]
-
-[build.environment]
-  NODE_VERSION = "18"
