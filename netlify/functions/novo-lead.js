@@ -1,84 +1,47 @@
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+const { createClient } = require('@supabase/supabase-js');
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY; // Substituído pela SERVICE_KEY
 
-dotenv.config();
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Definir cabeçalhos CORS
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-export const handler = async (event) => {
-  // Lidar com requisições OPTIONS (para CORS)
-  if (event.httpMethod === 'OPTIONS') {
+exports.handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
     return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
 
-  // Obter credenciais do Supabase a partir das variáveis de ambiente
-  let supabaseUrl, supabaseKey;
   try {
-    supabaseUrl = process.env.SUPABASE_URL;
-    supabaseKey = process.env.SUPABASE_ANON_KEY;
+    const { nome, telefone, status, origem, etapa_funil } = JSON.parse(event.body);
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Credenciais do Supabase não encontradas');
-    }
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: error.message }),
-    };
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  let payload;
-  try {
-    payload = JSON.parse(event.body);
-  } catch (error) {
-    return {
-      statusCode: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Payload JSON inválido' }),
-    };
-  }
-
-  // Validar campos obrigatórios
-  const { nome, telefone, status, origem, etapa_funil } = payload;
-  if (!nome || !telefone || !status || !origem || !etapa_funil) {
-    return {
-      statusCode: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Campos obrigatórios ausentes: nome, telefone, status, origem e etapa_funil são necessários' }),
-    };
-  }
-
-  // Inserir o lead no Supabase
-  try {
     const { data, error } = await supabase
       .from('leads')
-      .insert([{ nome, telefone, status, origem, etapa_funil }])
+      .insert([
+        {
+          nome,
+          telefone,
+          status,
+          origem,
+          etapa_funil,
+          entry_date: new Date(),
+          last_updated: new Date(),
+          is_new: true,
+        },
+      ])
       .select();
 
     if (error) throw error;
 
     return {
       statusCode: 201,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ lead: data[0] }),
     };
   } catch (error) {
+    console.error('Error inserting lead:', error);
     return {
       statusCode: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Erro ao criar lead: ' + error.message }),
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
